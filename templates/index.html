@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Conversor de Áudio — Freq • Onda • Delay</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <div class="wrap">
+    <h1>Conversor de Áudio</h1>
+    <p class="lead">Informe frequência <b>ou</b> comprimento de onda e a temperatura. Opcionalmente, uma distância para calcular o atraso.</p>
+    {% if error %}<div class="err" role="alert">{{ error }}</div>{% endif %}
+    <form method="post" novalidate>
+      <div class="field">
+        <div class="label">Tipo de entrada</div>
+        <div class="radios" role="radiogroup" aria-label="Tipo de entrada">
+          <div class="radio">
+            <input id="r-f" type="radio" name="input_type" value="frequency" {% if form.input_type != 'wavelength' %}checked{% endif %}>
+            <label for="r-f">Frequência (Hz)</label>
+          </div>
+          <div class="radio">
+            <input id="r-l" type="radio" name="input_type" value="wavelength" {% if form.input_type == 'wavelength' %}checked{% endif %}>
+            <label for="r-l">Compr. de onda (m)</label>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field col" id="freq-field">
+          <label class="label" for="in-frequency">Frequência<span class="units">Hz</span></label>
+          <input class="input" id="in-frequency" type="text" inputmode="decimal" name="frequency" value="{{ form.frequency or '' }}" placeholder="ex.: 20, 1k, 1000" {% if form.input_type == 'wavelength' %}disabled{% endif %}>
+          <div class="hint">Aceita “1k” = 1000 Hz</div>
+        </div>
+        <div class="field col" id="wave-field">
+          <label class="label" for="in-wavelength">Comprimento de onda<span class="units">m</span></label>
+          <input class="input" id="in-wavelength" type="text" inputmode="decimal" name="wavelength" value="{{ form.wavelength or '' }}" placeholder="ex.: 3,4 ou 34cm" {% if form.input_type != 'wavelength' %}disabled{% endif %}>
+          <div class="hint">Aceita “cm” e “mm” (ex.: 34cm, 120mm)</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field col">
+          <label class="label" for="temp">Temperatura do ar<span class="units">°C</span></label>
+          <input class="input" id="temp" type="text" inputmode="decimal" name="temperature" value="{{ form.temperature or '15' }}" placeholder="ex.: 15">
+        </div>
+        <div class="field col">
+          <label class="label" for="distance-input">Distância (opcional)<span class="units">m</span></label>
+          <input class="input" id="distance-input" type="text" inputmode="decimal" name="distance" value="{{ form.distance or '' }}" placeholder="ex.: 10">
+          <div class="chips">
+            <button class="chip" type="button" data-d="1">1 m</button>
+            <button class="chip" type="button" data-d="5">5 m</button>
+            <button class="chip" type="button" data-d="10">10 m</button>
+          </div>
+          <div class="hint">Toque em um atalho para preencher rápido.</div>
+        </div>
+      </div>
+      <button class="btn" type="submit">Calcular</button>
+      {% if results %}
+      <div class="results" data-v="{{ results.v_raw }}" data-lambda-m="{{ results.lambda_m }}" aria-live="polite">
+        <div class="card"><div class="k">Velocidade do som</div><div class="v copy">{{ results.v_str }}</div></div>
+        <div class="card"><div class="k">Frequência</div><div class="v copy">{{ results.f_str }}</div></div>
+        <div class="card"><div class="k">Período</div><div class="v copy">{{ results.T_str }}</div></div>
+        <div class="card"><div class="k">Comprimento de onda</div><div class="v copy">{{ results.lambda_str }}</div></div>
+        <div class="card"><div class="k">Atraso por metro</div><div class="v copy">{{ results.ms_per_m_str }}</div><div class="sub">Tempo que o som leva para percorrer 1 metro.</div></div>
+        {% if results.delay_str %}
+        <div class="card"><div class="k">Atraso para {{ results.distance_str }}</div><div class="v copy">{{ results.delay_str }}</div></div>
+        {% endif %}
+        <div class="card">
+          <div class="k">Frações de λ (posicionamento)</div>
+          <div class="grid">
+            <div><div class="k">λ/4</div><div class="v copy">{{ results.lambda_quarter }}</div></div>
+            <div><div class="k">λ/2</div><div class="v copy">{{ results.lambda_half }}</div></div>
+            <div><div class="k">1×λ</div><div class="v copy">{{ results.lambda_full_fmt }}</div></div>
+          </div>
+        </div>
+        <div class="calc card">
+          <h3>Calculadora rápida de delay</h3>
+          <div class="row">
+            <div class="col">
+              <label class="label" for="qd-distance">Distância<span class="units">m</span></label>
+              <input class="input" type="text" inputmode="decimal" id="qd-distance" placeholder="ex.: 17,30">
+              <div class="hint">Usa a temperatura atual para calcular a velocidade do som.</div>
+              <div class="chips" id="qd-shortcuts"></div>
+            </div>
+            <div class="col">
+              <div class="label">Delay estimado</div>
+              <div class="out" id="qd-out">—</div>
+            </div>
+          </div>
+          <div class="hint">Tabela rápida (1–30 m):</div>
+          <div class="grid" id="delay-grid"></div>
+        </div>
+      </div>
+      <div class="foot">Fórmula de v(T): v ≈ 331,3 + 0,606·T (°C)</div>
+      {% endif %}
+    </form>
+  </div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
